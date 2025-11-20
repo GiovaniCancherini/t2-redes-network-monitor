@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+
+  proxy:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.proxy
+    container_name: t2-redes-proxy
+    privileged: true          # necessario para tun0, iptables, raw socket
+    stdin_open: true
+    tty: true
+    networks:
+      - t2-redes-monitor
+    volumes:
+      - ./logs:/workspace/monitor/logs   # para trazer CSVs pro host
+
+  client1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: t2-redes-client1
+    privileged: true
+    stdin_open: true
+    tty: true
+    networks:
+      - t2-redes-monitor
+
+  client2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: t2-redes-client2
+    privileged: true
+    stdin_open: true
+    tty: true
+    networks:
+      - t2-redes-monitor
+
+networks:
+  t2-redes-monitor:
+    driver: bridge

@@ -1,0 +1,28 @@
+FROM ghcr.io/sjohann81/labredes:latest
+
+# Diretório base dentro do container
+WORKDIR /workspace
+
+# --- Copia e prepara o monitor em Python ---
+COPY src/monitor/ ./monitor/
+
+WORKDIR /workspace/monitor
+
+# Instala dependências do monitor (se tiver algo além da stdlib)
+# Se requirements.txt estiver vazio ou com só 'rich', continua ok
+RUN pip3 install --no-cache-dir -r requirements.txt || true
+
+# --- Copia e compila o traffic_tunnel ---
+WORKDIR /workspace
+COPY traffic_tunnel/ ./traffic_tunnel/
+
+WORKDIR /workspace/traffic_tunnel
+
+# Compila o túnel
+RUN make
+
+# Volta para a raiz de trabalho
+WORKDIR /workspace
+
+# Entrypoint em bash (NÃO sobe ambiente gráfico)
+ENTRYPOINT ["bash"]

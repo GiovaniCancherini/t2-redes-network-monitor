@@ -1,0 +1,17 @@
+FROM ghcr.io/sjohann81/labredes:latest
+
+WORKDIR /workspace
+
+# Copia o código do túnel para o cliente
+COPY traffic_tunnel/ ./traffic_tunnel/
+
+WORKDIR /workspace/traffic_tunnel
+
+# Compila o túnel também no cliente
+RUN make
+
+# Volta para diretório base
+WORKDIR /workspace
+
+# Clientes só precisam de bash, túnel e ferramentas de rede
+ENTRYPOINT ["bash"]
