@@ -27,8 +27,8 @@ t2-redes-network-monitor/
 │       ├── raw_sniffer.py
 │       ├── parsers.py
 │       ├── logger.py
-│       ├── utils.py
-│       └── requirements.txt
+│       └── utils.py
+│   └── requirements.txt
 ├── traffic_tunnel/
 │   ├── Makefile
 │   ├── tunnel.c
@@ -188,11 +188,12 @@ E é exatamente nessa `tun0` do proxy que o monitor está escutando.
 ## Fluxo:
 
 ```
-1. `./run_lab.sh`  
-2. sobe proxy + client1 + client2  
-3. inicia túnel no proxy (`traffic_tunnel eth0 -s`)  
-4. roda `server.sh`  
-5. inicia monitor (`python3 main.py tun0`)  
-6. inicia túnel nos clientes (`traffic_tunnel eth0 -c clientX.sh`)  
-7. gera tráfego -> monitor captura -> logs caem em `logs/`.
+1. git bash here e chmod +x run_lab.sh
+2. `./run_lab.sh`  
+3. sobe proxy + client1 + client2  
+4. inicia túnel no proxy (`traffic_tunnel eth0 -s`)  
+5. roda `server.sh`  
+6. inicia monitor (`python3 main.py tun0`)  
+7. inicia túnel nos clientes (`traffic_tunnel eth0 -c clientX.sh`)  
+8. gera tráfego -> monitor captura -> logs caem em `logs/`.
 ```

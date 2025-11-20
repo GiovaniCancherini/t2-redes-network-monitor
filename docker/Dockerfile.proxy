@@ -5,10 +5,11 @@ WORKDIR /workspace
 
 # --- Copia e prepara o monitor em Python ---
 COPY src/monitor/ ./monitor/
+COPY src/requirements.txt ./monitor/requirements.txt
 
 WORKDIR /workspace/monitor
 
-# Instala dependências do monitor (se tiver algo além da stdlib)
+# Instala dependências do monitor
 # Se requirements.txt estiver vazio ou com só 'rich', continua ok
 RUN pip3 install --no-cache-dir -r requirements.txt || true
 
