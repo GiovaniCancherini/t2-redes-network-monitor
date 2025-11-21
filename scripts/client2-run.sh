@@ -4,14 +4,14 @@ echo ""
 echo "==========================================="
 echo "            T2 - CLIENTE 2                "
 echo "==========================================="
-sleep 1
+echo ""
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TUN_DIR="$ROOT_DIR/traffic_tunnel"
 
 echo "[1] Atualizando dependências..."
 sudo apt update && sudo apt install -y iproute2 net-tools tcpdump make gcc curl dnsutils
 echo ""
-
-WORKDIR="$(pwd)"
-TUN_DIR="$WORKDIR/traffic_tunnel"
 
 echo "[2] Compilando túnel..."
 cd "$TUN_DIR"

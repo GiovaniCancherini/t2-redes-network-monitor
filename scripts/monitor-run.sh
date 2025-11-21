@@ -5,16 +5,15 @@ echo "==========================================="
 echo "       T2 - MÁQUINA MONITOR / PROXY        "
 echo "==========================================="
 echo ""
-sleep 1
+
+# Diretório raiz do projeto
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TUN_DIR="$ROOT_DIR/traffic_tunnel"
+MON_DIR="$ROOT_DIR/src"
 
 echo "[1] Atualizando dependências..."
 sudo apt update && sudo apt install -y iproute2 net-tools tcpdump python3 python3-pip make gcc
 echo ""
-
-# Caminho do projeto
-WORKDIR="$(pwd)"
-TUN_DIR="$WORKDIR/traffic_tunnel"
-MON_DIR="$WORKDIR/monitor"
 
 echo "[2] Compilando o túnel..."
 cd "$TUN_DIR"
@@ -42,8 +41,8 @@ echo "           TESTES A EXECUTAR AGORA         "
 echo "==========================================="
 echo ""
 echo "→ Vá para o CLIENTE 1 e rode: ping 8.8.8.8"
-echo "→ Vá para CLIENTE 1 e rode: curl http://www.pucrs.br"
-echo "→ Vá para CLIENTE 1 e rode: dig www.pucrs.br"
+echo "→ Vá para o CLIENTE 1 e rode: curl http://www.pucrs.br"
+echo "→ Vá para o CLIENTE 1 e rode: dig www.pucrs.br"
 echo ""
 echo "→ Faça o mesmo no CLIENTE 2"
 echo ""
@@ -61,8 +60,9 @@ kill $MON_PID
 sudo kill $TUNNEL_PID
 
 echo ""
-echo "[7] Logs gerados:"
-ls -lh "$MON_DIR/logs"
+echo "[7] Logs gerados em:"
+echo "$ROOT_DIR/logs"
+ls -lh "$ROOT_DIR/logs"
 
 echo ""
 echo "==========================================="
