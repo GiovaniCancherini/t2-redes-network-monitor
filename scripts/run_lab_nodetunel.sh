@@ -4,6 +4,8 @@ set -e
 # Resolve caminho absoluto do dir raiz do projeto
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+bash "$ROOT_DIR/scripts/create_macvlan.sh"
+
 echo "[+] Subindo ambiente T2 (modo SEM TÚNEL)..."
 docker compose -f "$ROOT_DIR/docker-compose-nodetunel.yml" down -v || true
 docker compose -f "$ROOT_DIR/docker-compose-nodetunel.yml" up -d --build

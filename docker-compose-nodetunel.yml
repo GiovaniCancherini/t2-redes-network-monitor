@@ -8,10 +8,14 @@ services:
     container_name: t2-monitor-nodetunel
     privileged: true
     networks:
-      - t2net
+      - t2net-macvlan
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
     volumes:
-      - ./logs:/logs
-    entrypoint: ["bash", "-c", "python3 monitor/main.py eth0"]
+      - ./src/monitor:/workspace/monitor
+      - ./scripts:/workspace/scripts
+      - ./logs:/workspace/logs
 
   client1:
     build:
@@ -19,11 +23,13 @@ services:
       dockerfile: docker/Dockerfile.client
     container_name: t2-client1-nodetunel
     privileged: true
-    stdin_open: true
-    tty: true
     networks:
-      - t2net
-    # entrypoint: ["bash", "/workspace/scripts/client1-run_nodetunel.sh"]
+      - t2net-macvlan
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./scripts:/workspace/scripts
 
   client2:
     build:
@@ -31,12 +37,14 @@ services:
       dockerfile: docker/Dockerfile.client
     container_name: t2-client2-nodetunel
     privileged: true
-    stdin_open: true
-    tty: true
     networks:
-      - t2net
-    # entrypoint: ["bash", "/workspace/scripts/client2-run_nodetunel.sh"]
+      - t2net-macvlan
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./scripts:/workspace/scripts
 
 networks:
-  t2net:
-    driver: bridge
+  t2net-macvlan:
+    external: true
