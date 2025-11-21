@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  monitor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.proxy
+    container_name: t2-monitor-nodetunel
+    privileged: true
+    networks:
+      - t2net
+    volumes:
+      - ./logs:/logs
+    entrypoint: ["bash", "-c", "python3 monitor/main.py eth0"]
+
+  client1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: t2-client1-nodetunel
+    privileged: true
+    stdin_open: true
+    tty: true
+    networks:
+      - t2net
+    # entrypoint: ["bash", "/workspace/scripts/client1-run_nodetunel.sh"]
+
+  client2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: t2-client2-nodetunel
+    privileged: true
+    stdin_open: true
+    tty: true
+    networks:
+      - t2net
+    # entrypoint: ["bash", "/workspace/scripts/client2-run_nodetunel.sh"]
+
+networks:
+  t2net:
+    driver: bridge

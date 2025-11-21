@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
 
+# Resolve caminho absoluto do dir raiz do projeto
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
 echo "[+] Subindo ambiente T2 (build + containers)..."
-docker compose down -v 2>/dev/null || docker-compose down -v 2>/dev/null || true
-docker compose up -d --build || docker-compose up -d --build
+docker compose -f "$ROOT_DIR/docker-compose.yml" down -v || true
+docker compose -f "$ROOT_DIR/docker-compose.yml" up -d --build
 
 echo
 echo "[+] Containers em execução:"
