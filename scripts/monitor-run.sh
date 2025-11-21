@@ -9,7 +9,7 @@ echo ""
 # Diretório raiz do projeto
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TUN_DIR="$ROOT_DIR/traffic_tunnel"
-MON_DIR="$ROOT_DIR/src"
+MON_DIR="$ROOT_DIR/src/monitor"
 
 echo "[1] Atualizando dependências..."
 sudo apt update && sudo apt install -y iproute2 net-tools tcpdump python3 python3-pip make gcc
@@ -32,7 +32,7 @@ ip a show tun0
 echo ""
 echo "[5] Executando monitor Python no tun0..."
 cd "$MON_DIR"
-python3 main.py tun0 &
+sudo python3 main.py tun0 &
 MON_PID=$!
 
 echo ""
