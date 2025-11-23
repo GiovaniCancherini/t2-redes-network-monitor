@@ -1,6 +1,6 @@
 from raw_sniffer import RawSniffer
-from logger import SessionLogger
-from datetime import datetime
+from session_logger import SessionLogger
+from utils import now
 import sys
 
 def main():
@@ -9,48 +9,43 @@ def main():
         sys.exit(1)
 
     interface = sys.argv[1]
-    logger = SessionLogger()
     sniffer = RawSniffer(interface)
+    logger = SessionLogger()
 
-    logger.log(f"[+] Monitorando interface {interface}...")
-    logger.log(f"[+] Sessão criada em: {logger.session_dir}")
-    
+    logger.log(f"[+] Monitorando interface {interface}")
+    logger.log(f"[+] Pasta de sessão: {logger.session_dir}")
+
     try:
         while True:
-            raw, parsed, counters = sniffer.capture_once(return_all=True)
+            raw, pkt, counters = sniffer.capture_once()
 
-            logger.save_raw(raw)
+            if raw:
+                logger.save_raw(raw)
 
-            ts = datetime.now().isoformat()
+            if not pkt:
+                continue
 
-            # INTERNET (camada 3)
-            if parsed.layer == 3:
-                logger.write_internet([
-                    ts, parsed.proto, parsed.src, parsed.dst,
-                    parsed.inner_proto, parsed.extra, parsed.size
-                ])
+            ts = now()
 
-            # TRANSPORTE (camada 4)
-            if parsed.layer == 4:
-                logger.write_transport([
-                    ts, parsed.proto, parsed.src_ip, parsed.src_port,
-                    parsed.dst_ip, parsed.dst_port, parsed.size
-                ])
+            if pkt.layer == 3 and pkt.proto == "IPv4":
+                logger.write_internet([ts, "IPv4", pkt.src, pkt.dst,
+                                    pkt.inner_proto, pkt.extra, pkt.size])
 
-            # APLICACAO (camada 7)
-            if parsed.layer == 7:
-                logger.write_application([
-                    ts, parsed.proto, parsed.info
-                ])
+            if pkt.layer == 4 and pkt.proto == "TCP":
+                logger.write_transport([ts, "TCP", pkt.src_ip, pkt.src_port,
+                                     pkt.dst_ip, pkt.dst_port, pkt.size])
 
-            logger.log(
-                f"IPv4:{counters['ipv4']} IPv6:{counters['ipv6']} "
-                f"ICMP:{counters['icmp']} TCP:{counters['tcp']} UDP:{counters['udp']}"
-            )
+            if pkt.layer == 4 and pkt.proto == "UDP":
+                logger.write_transport([ts, "UDP", pkt.src_ip, pkt.src_port,
+                                     pkt.dst_ip, pkt.dst_port, pkt.size])
+
+            if pkt.proto == "ARP":
+                logger.write_internet([ts, "ARP", pkt.src, pkt.dst, "", "", pkt.size])
+
+            logger.log(f"IPv4:{counters['ipv4']} ICMP:{counters['icmp']} TCP:{counters['tcp']} UDP:{counters['udp']} ARP:{counters['arp']}")
 
     except KeyboardInterrupt:
         logger.log("[!] Encerrado pelo usuário.")
-        logger.log(f"Logs salvos em: {logger.session_dir}")
 
 if __name__ == "__main__":
     main()

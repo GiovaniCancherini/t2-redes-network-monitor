@@ -1,59 +1,64 @@
-import struct
+import socket
+from parsers import (
+    ParsedPacket, parse_ethernet, parse_ipv4,
+    parse_icmp, parse_tcp, parse_udp
+)
 
-def parse_ethernet(data):
-    if len(data) < 14:
-        return None
-    
-    # MAC Destino	6 bytes
-    # MAC Origem	6 bytes
-    # EtherType	    2 bytes
-    # TOTAL         14 bytes
-    dst, src, proto = struct.unpack("!6s6sH", data[:14])
-    # !     -> network byte order (big endian)
-    # 6s    -> 6 bytes (string/bytes)   = MAC destino
-    # 6s    -> 6 bytes (string/bytes)   = MAC origem
-    # H     -> unsigned short (2 bytes) = EtherType
-    return {
-        "proto": proto,
-        "payload": data[14:]
-    }
+ETH_P_ALL = 0x0003
 
-def parse_ipv4(data):
-    if len(data) < 20:
-        return None
-    version = data[0] >> 4
-    ihl = (data[0] & 0x0F) * 4
-    if version != 4:
-        return None
+class RawSniffer:
+    def __init__(self, interface):
+        self.iface = interface
+        self.sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(ETH_P_ALL))
+        self.sock.bind((interface, 0))
 
-    total_len = struct.unpack("!H", data[2:4])[0]
-    proto = data[9]
-    src = ".".join(map(str, data[12:16]))
-    dst = ".".join(map(str, data[16:20]))
+        self.counters = {
+            "ipv4": 0,
+            "tcp": 0,
+            "udp": 0,
+            "icmp": 0,
+            "arp": 0
+        }
 
-    return {
-        "proto": proto,
-        "src": src,
-        "dst": dst,
-        "length": total_len,
-        "payload": data[ihl:]
-    }
+    def capture_once(self):
+        raw, addr = self.sock.recvfrom(65535)
 
-def parse_icmp(data):
-    if len(data) < 4:
-        return None
-    icmp_type = data[0]
-    icmp_code = data[1]
-    return {"type": icmp_type, "code": icmp_code}
+        eth_proto, payload = parse_ethernet(raw)
 
-def parse_tcp(data):
-    if len(data) < 20:
-        return None
-    src_port, dst_port = struct.unpack("!HH", data[:4])
-    return {"src_port": src_port, "dst_port": dst_port}
+        # ARP
+        if eth_proto == 0x0806:
+            self.counters["arp"] += 1
+            return raw, ParsedPacket(layer=3, proto="ARP", size=len(raw)), self.counters
 
-def parse_udp(data):
-    if len(data) < 8:
-        return None
-    src_port, dst_port = struct.unpack("!HH", data[:4])
-    return {"src_port": src_port, "dst_port": dst_port}
+        # IPv4
+        if eth_proto == 0x0800:
+            self.counters["ipv4"] += 1
+            ip = parse_ipv4(payload)
+            if not ip:
+                return raw, None, self.counters
+
+            proto, src, dst, total_len, ip_payload = ip
+            pkt = None
+
+            if proto == 1:
+                self.counters["icmp"] += 1
+                icmp = parse_icmp(ip_payload)
+                pkt = ParsedPacket(3, "IPv4", src, dst, inner_proto="ICMP",
+                                   extra=str(icmp), size=total_len)
+
+            elif proto == 6:
+                self.counters["tcp"] += 1
+                sp, dp = parse_tcp(ip_payload)
+                pkt = ParsedPacket(4, "TCP", src, dst, sp, dp, size=total_len)
+
+            elif proto == 17:
+                self.counters["udp"] += 1
+                sp, dp = parse_udp(ip_payload)
+                pkt = ParsedPacket(4, "UDP", src, dst, sp, dp, size=total_len)
+
+            else:
+                pkt = ParsedPacket(3, "IPv4", src, dst, inner_proto=proto, size=total_len)
+
+            return raw, pkt, self.counters
+
+        return raw, None, self.counters
