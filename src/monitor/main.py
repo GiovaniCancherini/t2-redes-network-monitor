@@ -1,6 +1,6 @@
 from raw_sniffer import RawSniffer
 from session_logger import SessionLogger
-from utils import now
+from utils import now, print_status
 import sys
 
 def main():
@@ -42,7 +42,7 @@ def main():
             if pkt.proto == "ARP":
                 logger.write_internet([ts, "ARP", pkt.src, pkt.dst, "", "", pkt.size])
 
-            logger.log(f"IPv4:{counters['ipv4']} ICMP:{counters['icmp']} TCP:{counters['tcp']} UDP:{counters['udp']} ARP:{counters['arp']}")
+            print_status(counters)
 
     except KeyboardInterrupt:
         logger.log("[!] Encerrado pelo usuário.")
