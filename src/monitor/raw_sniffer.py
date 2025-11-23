@@ -1,56 +1,64 @@
 import socket
-from parsers import parse_ethernet, parse_ipv4, parse_icmp, parse_tcp, parse_udp
-from logger import log_internet, log_transport
-from utils import now
+from parsers import (
+    ParsedPacket, parse_ethernet, parse_ipv4,
+    parse_icmp, parse_tcp, parse_udp
+)
 
-ETH_P_ALL = 0x0003  # captura tudo
+ETH_P_ALL = 0x0003
 
 class RawSniffer:
     def __init__(self, interface):
         self.iface = interface
-        # AF_PACKET para criar a partir da camada de enlace (acessar endereços MAC, dhcp, arp, etc)
         self.sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(ETH_P_ALL))
         self.sock.bind((interface, 0))
+
         self.counters = {
-            "IPv4": 0,
-            "TCP": 0,
-            "UDP": 0,
-            "ICMP": 0,
-            "ARP": 0
+            "ipv4": 0,
+            "tcp": 0,
+            "udp": 0,
+            "icmp": 0,
+            "arp": 0
         }
 
     def capture_once(self):
-        raw, addr = self.sock.recvfrom(65535) # maior tamanho possivel de um pacote Ethernet -> 65535 bytes = 1 pacote IP maximo
+        raw, addr = self.sock.recvfrom(65535)
 
-        eth = parse_ethernet(raw)
-        if not eth:
-            return
+        eth_proto, payload = parse_ethernet(raw)
 
-        if eth["proto"] == 0x0806:
-            self.counters["ARP"] += 1
-            return
+        # ARP
+        if eth_proto == 0x0806:
+            self.counters["arp"] += 1
+            return raw, ParsedPacket(layer=3, proto="ARP", size=len(raw)), self.counters
 
-        if eth["proto"] == 0x0800:
-            self.counters["IPv4"] += 1
-            ip = parse_ipv4(eth["payload"])
+        # IPv4
+        if eth_proto == 0x0800:
+            self.counters["ipv4"] += 1
+            ip = parse_ipv4(payload)
             if not ip:
-                return
+                return raw, None, self.counters
 
-            log_internet(now(), "IPv4", ip["src"], ip["dst"], "", ip["length"])
+            proto, src, dst, total_len, ip_payload = ip
+            pkt = None
 
-            if ip["proto"] == 1:
-                self.counters["ICMP"] += 1
-                parse_icmp(ip["payload"])
-                return
+            if proto == 1:
+                self.counters["icmp"] += 1
+                icmp = parse_icmp(ip_payload)
+                pkt = ParsedPacket(3, "IPv4", src, dst, inner_proto="ICMP",
+                                   extra=str(icmp), size=total_len)
 
-            if ip["proto"] == 6:
-                self.counters["TCP"] += 1
-                tcp = parse_tcp(ip["payload"])
-                log_transport(now(), "TCP", ip["src"], tcp["src_port"], ip["dst"], tcp["dst_port"])
-                return
+            elif proto == 6:
+                self.counters["tcp"] += 1
+                sp, dp = parse_tcp(ip_payload)
+                pkt = ParsedPacket(4, "TCP", src, dst, sp, dp, size=total_len)
 
-            if ip["proto"] == 17:
-                self.counters["UDP"] += 1
-                udp = parse_udp(ip["payload"])
-                log_transport(now(), "UDP", ip["src"], udp["src_port"], ip["dst"], udp["dst_port"])
-                return
+            elif proto == 17:
+                self.counters["udp"] += 1
+                sp, dp = parse_udp(ip_payload)
+                pkt = ParsedPacket(4, "UDP", src, dst, sp, dp, size=total_len)
+
+            else:
+                pkt = ParsedPacket(3, "IPv4", src, dst, inner_proto=proto, size=total_len)
+
+            return raw, pkt, self.counters
+
+        return raw, None, self.counters
